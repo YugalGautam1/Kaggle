@@ -2,45 +2,39 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 
 df = pd.read_csv('data/housing_prices/train.csv')
-df['YearDifference'] = df['YrSold'] - df['YearBuilt']
-df['Street'] = df['Street'].replace({'Grvl': 0, 'Pave': 1})
-
-features = ['LotArea', 'OverallCond', 'YrSold', 'OverallQual', 'MSSubClass', 'Street','SaleType']
-
 df2 = pd.read_csv('data/housing_prices/test.csv')
+
+
+
+df['YearDifference'] = df['YrSold'] - df['YearBuilt']
 df2['YearDifference'] = df2['YrSold'] - df2['YearBuilt']
+
+df['Street'] = df['Street'].replace({'Grvl': 0, 'Pave': 1})
 df2['Street'] = df2['Street'].replace({'Grvl': 0, 'Pave': 1})
-sale_type_map = {
-    'WD': 0,     
-    'CWD': 1,    
-    'VWD': 2,    
-    'New': 3,    
-    'COD': 4,   
-    'Con': 5,    
-    'ConLw': 6,  
-    'ConLI': 7,  
-    'ConLD': 8, 
-    'Oth': 9,
-}
-df['SaleType'] = df['SaleType'].map(sale_type_map).fillna(9)
-df2['SaleType'] = df2['SaleType'].map(sale_type_map).fillna(9)
 
+features = ['LotArea', 'OverallCond', 'YrSold', 'OverallQual', 'MSSubClass', 'Street', 'SaleType', 'MSZoning', 'YearDifference']
 
-X_train = df[features]
+df = df[['Id']+features + ['SalePrice']]
+df2 = df2[['Id']+features]
+
+df = pd.get_dummies(df, columns=['SaleType', 'MSZoning'])
+df2 = pd.get_dummies(df2, columns=['SaleType', 'MSZoning'])
+
+X_train = df.drop('SalePrice', axis=1)
 y_train = df['SalePrice']
-
-X_test = df2[features]
+X_test = df2
 
 gb_model = GradientBoostingRegressor(
-    n_estimators=100,
-    learning_rate=0.1,
-    max_depth=3,
+    n_estimators=300,
+    learning_rate=0.05,
+    max_depth=4,
 )
 gb_model.fit(X_train, y_train)
 
 gb_preds = gb_model.predict(X_test)
 
-pd.DataFrame({
+output = pd.DataFrame({
     'Id': df2['Id'],
     'SalePrice': gb_preds
-}).to_csv('data/housing_prices/fin.csv', index=False)
+})
+output.to_csv('data/housing_prices/fin.csv', index=False)
